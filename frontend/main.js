@@ -1,5 +1,12 @@
-// Change this URL to your API endpoint
-const API_URLS = ["http://127.0.0.1:5000/api", "http://localhost:5000/api"];
+// Default API URLs - can be modified after script loads
+window.API_URLS = ["http://127.0.0.1:5000/metrics", "http://localhost:5000/metrics"];
+
+const CONFIG = {
+  timeout: 3000,
+  enableLocation: true,
+  enableHardware: true,
+  enablePerformance: true,
+};
 
 async function collectDeviceInfo() {
   const info = {
@@ -7,15 +14,15 @@ async function collectDeviceInfo() {
     connection: getConnectionInfo(),
     browser: getBrowserInfo(),
     device: getDeviceInfo(),
-    hardware: await getHardwareInfo(),
+    hardware: CONFIG.enableHardware ? await getHardwareInfo() : {},
     location: {},
-    performance: getPerformanceInfo(),
+    performance: CONFIG.enablePerformance ? getPerformanceInfo() : {},
     timestamp: new Date().toISOString(),
     url: window.location.href,
     referrer: document.referrer,
   };
 
-  if (info.ip && info.ip !== "Unknown") {
+  if (CONFIG.enableLocation && info.ip && info.ip !== "Unknown") {
     try {
       info.location = await getLocationFromIP(info.ip);
     } catch (e) {}
@@ -279,10 +286,12 @@ async function getLocationFromIP(ip) {
 }
 
 async function sendDataToAPI(data) {
-  for (const endpoint of API_URLS) {
+  const apiUrls = window.API_URLS;
+
+  for (const endpoint of apiUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), CONFIG.timeout);
 
       await fetch(endpoint, {
         method: "POST",
@@ -295,7 +304,7 @@ async function sendDataToAPI(data) {
       });
 
       clearTimeout(timeoutId);
-      return;
+      return { success: true, endpoint: endpoint };
     } catch (error) {
       try {
         const dataStr = btoa(JSON.stringify(data));
@@ -304,16 +313,43 @@ async function sendDataToAPI(data) {
           "?data=" +
           encodeURIComponent(dataStr) +
           "&fallback=true&source=mainjs";
-        return;
-      } catch (fallbackError) {}
+        return { success: true, endpoint: endpoint, method: "fallback" };
+      } catch (fallbackError) {
+        console.warn(`Failed to send to ${endpoint}:`, fallbackError);
+      }
     }
+  }
+  throw new Error("All API endpoints failed");
+}
+
+async function dropClientInfo() {
+  try {
+    const deviceInfo = await collectDeviceInfo();
+    const result = await sendDataToAPI(deviceInfo);
+    return { success: true, data: deviceInfo, sendResult: result };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 }
 
-(async function () {
-  try {
-    const deviceInfo = await collectDeviceInfo();
-    await sendDataToAPI(deviceInfo);
-  } catch (error) {}
-})();
+window.dropClientInfo = dropClientInfo;
+window.collectDeviceInfo = collectDeviceInfo;
+
+window.setApiUrls = function (urls) {
+  if (Array.isArray(urls)) {
+    window.API_URLS = urls;
+  } else if (typeof urls === "string") {
+    window.API_URLS = [urls];
+  }
+};
+
+window.addApiUrl = function (url) {
+  if (!window.API_URLS.includes(url)) {
+    window.API_URLS.push(url);
+  }
+};
+
+window.getApiUrls = function () {
+  return [...window.API_URLS];
+};
 
