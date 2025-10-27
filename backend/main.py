@@ -67,9 +67,9 @@ class DataCollectionAPI:
     def run(self):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         file_count = len(os.listdir(self.data_dir))
-        print(f"[{now}] Starting DataCollectionAPI on \"http://{self.host}:{self.port}/metrics\"")
+        print(f"[{now}] Starting DataCollectionAPI on \"http://localhost:{self.port}/metrics\"")
         print(f"[{now}] Data directory: {self.data_dir} ({file_count} files)")
-        print(f"[{now}] Serving main.js on \"http://{self.host}:{self.port}/main.js\"")
+        print(f"[{now}] Serving main.js on \"http://localhost:{self.port}/main.js\"")
         serve(self.app, host=self.host, port=self.port)
 
 
