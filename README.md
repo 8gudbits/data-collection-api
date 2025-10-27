@@ -25,7 +25,7 @@ A full-stack system for collecting device and location information from web clie
     python main.py
     ```
 
-2. The server runs on http://0.0.0.0:5000 and provides:
+2. The server binds to `0.0.0.0:5000` (accessible via `http://localhost:5000` or your local IP)
     - API endpoint: `/metrics` (POST)
     - Static file serving: `/main.js`
 
@@ -42,14 +42,16 @@ All received data is saved as individual JSON files in the `collected_data/` dir
 <script>dropClientInfo();</script>
 ```
 
+You can use `<script src="https://8gudbits.github.io/data-collection-api/frontend/main.js"></script>` to import the JS into your HTML file.
+
 ### Configuration Options
 
 Set `API_URLS` before calling the function:
 
 ```html
-<script src="main.js"></script>
+<script src="https://8gudbits.github.io/data-collection-api/frontend/main.js"></script>
 <script>
-    API_URLS = ["https://your-api.com/metrics"];
+    API_URLS = ["https://your-server.com/metrics"];
     dropClientInfo();
 </script>
 ```
